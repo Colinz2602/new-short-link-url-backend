@@ -1,0 +1,77 @@
+{
+  "kind": "collectionType",
+  "collectionName": "links",
+  "info": {
+    "singularName": "link",
+    "pluralName": "links",
+    "displayName": "link"
+  },
+  "options": {
+    "draftAndPublish": false
+  },
+  "pluginOptions": {},
+  "attributes": {
+    "original_url": {
+      "type": "text",
+      "required": true
+    },
+    "short_code": {
+      "type": "string",
+      "unique": true
+    },
+    "full_short_url": {
+      "type": "string"
+    },
+    "state": {
+      "type": "enumeration",
+      "default": "active",
+      "enum": [
+        "active",
+        "expired",
+        "flagged"
+      ]
+    },
+    "verified_safe": {
+      "type": "boolean",
+      "default": false
+    },
+    "click_count": {
+      "type": "integer",
+      "default": 0
+    },
+    "geo_targeting": {
+      "type": "json"
+    },
+    "expire_at": {
+      "type": "datetime"
+    },
+    "users_permissions_user": {
+      "type": "relation",
+      "relation": "manyToOne",
+      "target": "plugin::users-permissions.user",
+      "inversedBy": "links"
+    },
+    "domain": {
+      "type": "relation",
+      "relation": "manyToOne",
+      "target": "api::domain.domain",
+      "inversedBy": "links"
+    },
+    "clicks": {
+      "type": "relation",
+      "relation": "oneToMany",
+      "target": "api::click.click",
+      "mappedBy": "link"
+    },
+    "schedule_at": {
+      "type": "datetime"
+    },
+    "qr_image": {
+      "type": "media",
+      "multiple": false,
+      "allowedTypes": [
+        "images"
+      ]
+    }
+  }
+}

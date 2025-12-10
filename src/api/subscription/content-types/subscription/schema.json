@@ -1,0 +1,44 @@
+{
+  "kind": "collectionType",
+  "collectionName": "subscriptions",
+  "info": {
+    "singularName": "subscription",
+    "pluralName": "subscriptions",
+    "displayName": "subscription"
+  },
+  "options": {
+    "draftAndPublish": false
+  },
+  "pluginOptions": {},
+  "attributes": {
+    "stripe_customer_id": {
+      "type": "string",
+      "required": true
+    },
+    "stripe_subscription_id": {
+      "type": "string",
+      "required": true,
+      "unique": true
+    },
+    "plan_type": {
+      "type": "enumeration",
+      "default": "free",
+      "enum": [
+        "free",
+        "tool",
+        "bundle",
+        "annual",
+        "quarterly"
+      ]
+    },
+    "active_until": {
+      "type": "datetime"
+    },
+    "users_permissions_user": {
+      "type": "relation",
+      "relation": "oneToOne",
+      "target": "plugin::users-permissions.user",
+      "inversedBy": "subscription"
+    }
+  }
+}

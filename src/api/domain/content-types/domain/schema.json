@@ -1,0 +1,40 @@
+{
+  "kind": "collectionType",
+  "collectionName": "domains",
+  "info": {
+    "singularName": "domain",
+    "pluralName": "domains",
+    "displayName": "domain"
+  },
+  "options": {
+    "draftAndPublish": false
+  },
+  "pluginOptions": {},
+  "attributes": {
+    "domain_name": {
+      "type": "string",
+      "required": true,
+      "unique": true
+    },
+    "type": {
+      "type": "enumeration",
+      "default": "public",
+      "enum": [
+        "public",
+        "custom"
+      ]
+    },
+    "users_permissions_user": {
+      "type": "relation",
+      "relation": "oneToOne",
+      "target": "plugin::users-permissions.user",
+      "inversedBy": "domain"
+    },
+    "links": {
+      "type": "relation",
+      "relation": "oneToMany",
+      "target": "api::link.link",
+      "mappedBy": "domain"
+    }
+  }
+}

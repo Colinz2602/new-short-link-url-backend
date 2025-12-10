@@ -1,0 +1,36 @@
+{
+  "kind": "collectionType",
+  "collectionName": "clicks",
+  "info": {
+    "singularName": "click",
+    "pluralName": "clicks",
+    "displayName": "click"
+  },
+  "options": {
+    "draftAndPublish": true
+  },
+  "pluginOptions": {},
+  "attributes": {
+    "ip": {
+      "type": "string"
+    },
+    "country": {
+      "type": "string"
+    },
+    "device": {
+      "type": "string"
+    },
+    "referrer": {
+      "type": "string"
+    },
+    "timestamp": {
+      "type": "datetime"
+    },
+    "link": {
+      "type": "relation",
+      "relation": "manyToOne",
+      "target": "api::link.link",
+      "inversedBy": "clicks"
+    }
+  }
+}
