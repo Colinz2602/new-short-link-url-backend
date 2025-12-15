@@ -72,6 +72,9 @@
       "allowedTypes": [
         "images"
       ]
+    },
+    "creator_ip": {
+      "type": "string"
     }
   }
 }

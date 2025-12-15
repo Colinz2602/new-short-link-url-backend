@@ -19,7 +19,12 @@ export default factories.createCoreController('api::link.link', ({ strapi }) => 
     async create(ctx) {
         try {
             const user = ctx.state.user;
-            if (!user) return ctx.unauthorized('Bạn cần đăng nhập.');
+            let ip = ctx.request.header['x-forwarded-for'] || ctx.request.ip;
+            if (typeof ip === 'string' && ip.includes(',')) {
+                ip = ip.split(',')[0].trim();
+            }
+            // Chuẩn hóa IP local
+            if (ip === '::1' || ip === '127.0.0.1') ip = '127.0.0.1';
 
             if (!ctx.request.body.data) {
                 ctx.request.body = { data: { ...ctx.request.body } };
@@ -29,7 +34,28 @@ export default factories.createCoreController('api::link.link', ({ strapi }) => 
                 ctx.request.body.data.domain = Number(ctx.request.body.data.domain);
             }
 
-            ctx.request.body.data.users_permissions_user = user.id;
+            if (!user) {
+                const now = new Date();
+                const thirtyDaysAgo = new Date(now.getTime() - 30 * 24 * 60 * 60 * 1000);
+
+                const count = await strapi.db.query('api::link.link').count({
+                    where: {
+                        creator_ip: ip,
+                        createdAt: { $gte: thirtyDaysAgo.toISOString() },
+                        users_permissions_user: null
+                    }
+                });
+
+                if (count >= 50) {
+                    return ctx.badRequest('Bạn đã đạt giới hạn 50 links miễn phí');
+                }
+                ctx.request.body.data.creator_ip = ip;
+                ctx.request.body.data.users_permissions_user = null;
+
+            } else {
+                ctx.request.body.data.users_permissions_user = user.id;
+                ctx.request.body.data.creator_ip = ip;
+            }
 
             const result = await strapi.service('api::link.link').create({
                 data: ctx.request.body.data

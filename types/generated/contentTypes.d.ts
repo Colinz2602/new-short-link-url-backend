@@ -550,6 +550,7 @@ export interface ApiLinkLink extends Struct.CollectionTypeSchema {
     createdAt: Schema.Attribute.DateTime;
     createdBy: Schema.Attribute.Relation<'oneToOne', 'admin::user'> &
       Schema.Attribute.Private;
+    creator_ip: Schema.Attribute.String;
     domain: Schema.Attribute.Relation<'manyToOne', 'api::domain.domain'>;
     expire_at: Schema.Attribute.DateTime;
     full_short_url: Schema.Attribute.String;
