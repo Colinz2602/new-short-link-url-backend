@@ -2,13 +2,13 @@ export default {
     routes: [
         {
             method: 'POST',
-            path: '/subscriptions/checkout',
+            path: '/payment/checkout',
             handler: 'subscription.createCheckoutSession',
             config: { policies: ['global::is-authenticated'] },
         },
         {
             method: 'POST',
-            path: '/subscriptions/webhook',
+            path: '/payment/webhook',
             handler: 'subscription.webhook',
             config: { auth: false },
         },

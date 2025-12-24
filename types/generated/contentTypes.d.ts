@@ -475,7 +475,7 @@ export interface ApiClickClick extends Struct.CollectionTypeSchema {
     singularName: 'click';
   };
   options: {
-    draftAndPublish: true;
+    draftAndPublish: false;
   };
   attributes: {
     country: Schema.Attribute.String;
@@ -545,6 +545,7 @@ export interface ApiLinkLink extends Struct.CollectionTypeSchema {
     draftAndPublish: false;
   };
   attributes: {
+    ai_insights: Schema.Attribute.Text;
     click_count: Schema.Attribute.Integer & Schema.Attribute.DefaultTo<0>;
     clicks: Schema.Attribute.Relation<'oneToMany', 'api::click.click'>;
     createdAt: Schema.Attribute.DateTime;
@@ -562,7 +563,7 @@ export interface ApiLinkLink extends Struct.CollectionTypeSchema {
     publishedAt: Schema.Attribute.DateTime;
     qr_image: Schema.Attribute.Media<'images'>;
     schedule_at: Schema.Attribute.DateTime;
-    short_code: Schema.Attribute.String & Schema.Attribute.Unique;
+    short_code: Schema.Attribute.String;
     state: Schema.Attribute.Enumeration<['active', 'expired', 'flagged']> &
       Schema.Attribute.DefaultTo<'active'>;
     updatedAt: Schema.Attribute.DateTime;
@@ -604,9 +605,8 @@ export interface ApiSubscriptionSubscription
       Schema.Attribute.DefaultTo<'free'>;
     publishedAt: Schema.Attribute.DateTime;
     stripe_customer_id: Schema.Attribute.String & Schema.Attribute.Required;
-    stripe_subscription_id: Schema.Attribute.String &
-      Schema.Attribute.Required &
-      Schema.Attribute.Unique;
+    stripe_subscription_id: Schema.Attribute.String;
+    tools: Schema.Attribute.Relation<'manyToMany', 'api::tool.tool'>;
     updatedAt: Schema.Attribute.DateTime;
     updatedBy: Schema.Attribute.Relation<'oneToOne', 'admin::user'> &
       Schema.Attribute.Private;
@@ -614,6 +614,43 @@ export interface ApiSubscriptionSubscription
       'oneToOne',
       'plugin::users-permissions.user'
     >;
+  };
+}
+
+export interface ApiToolTool extends Struct.CollectionTypeSchema {
+  collectionName: 'tools';
+  info: {
+    displayName: 'tool';
+    pluralName: 'tools';
+    singularName: 'tool';
+  };
+  options: {
+    draftAndPublish: false;
+  };
+  attributes: {
+    active: Schema.Attribute.Boolean & Schema.Attribute.DefaultTo<true>;
+    api_endpoint: Schema.Attribute.String & Schema.Attribute.Private;
+    createdAt: Schema.Attribute.DateTime;
+    createdBy: Schema.Attribute.Relation<'oneToOne', 'admin::user'> &
+      Schema.Attribute.Private;
+    description: Schema.Attribute.Text;
+    locale: Schema.Attribute.String & Schema.Attribute.Private;
+    localizations: Schema.Attribute.Relation<'oneToMany', 'api::tool.tool'> &
+      Schema.Attribute.Private;
+    name: Schema.Attribute.String & Schema.Attribute.Required;
+    price: Schema.Attribute.Decimal &
+      Schema.Attribute.Required &
+      Schema.Attribute.DefaultTo<5>;
+    publishedAt: Schema.Attribute.DateTime;
+    slug: Schema.Attribute.UID<'name'> & Schema.Attribute.Required;
+    stripe_price_id: Schema.Attribute.String;
+    subscriptions: Schema.Attribute.Relation<
+      'manyToMany',
+      'api::subscription.subscription'
+    >;
+    updatedAt: Schema.Attribute.DateTime;
+    updatedBy: Schema.Attribute.Relation<'oneToOne', 'admin::user'> &
+      Schema.Attribute.Private;
   };
 }
 
@@ -1137,6 +1174,7 @@ declare module '@strapi/strapi' {
       'api::domain.domain': ApiDomainDomain;
       'api::link.link': ApiLinkLink;
       'api::subscription.subscription': ApiSubscriptionSubscription;
+      'api::tool.tool': ApiToolTool;
       'plugin::content-releases.release': PluginContentReleasesRelease;
       'plugin::content-releases.release-action': PluginContentReleasesReleaseAction;
       'plugin::i18n.locale': PluginI18NLocale;

@@ -132,8 +132,12 @@ export default factories.createCoreService('api::link.link', ({ strapi }) => ({
                 if (exist) throw new errors.ApplicationError('Slug already exists on this domain');
             }
 
+            const rootDomain = process.env.ROOT_DOMAIN || 'localhost:3000';
+            const fullHost = `${domain.domain_name}.${rootDomain}`;
             params.data.short_code = shortCode;
-            params.data.full_short_url = `https://${domain.domain_name}/${shortCode}`;
+            const protocol = rootDomain.includes('localhost') ? 'http' : 'https';
+            params.data.full_short_url = `${protocol}://${fullHost}/${shortCode}`;
+
             params.data.click_count = 0;
             delete params.data.custom_slug;
 
@@ -146,8 +150,15 @@ export default factories.createCoreService('api::link.link', ({ strapi }) => ({
 
     // Logic Redirect
     async getRedirectTarget(slug: string, hostname: string, country: string) {
-        const cleanHost = hostname.replace('www.', '');
-        const isLocal = cleanHost.includes('localhost') || cleanHost.includes('127.0.0.1');
+        const cleanHost = hostname.replace('www.', '').toLowerCase();
+        const rootDomain = process.env.ROOT_DOMAIN || 'localhost:3000';
+
+        let requestDomain = cleanHost;
+        if (cleanHost.endsWith(`.${rootDomain}`)) {
+            requestDomain = cleanHost.replace(`.${rootDomain}`, '');
+        } else if (cleanHost === rootDomain) {
+            requestDomain = 'public';
+        }
 
         const links = await strapi.db.query('api::link.link').findMany({
             where: { short_code: slug },
@@ -155,32 +166,31 @@ export default factories.createCoreService('api::link.link', ({ strapi }) => ({
             select: ['original_url', 'state', 'geo_targeting', 'schedule_at', 'expire_at']
         });
 
+        if (!links || links.length === 0) {
+            throw new errors.NotFoundError(`Link not found`);
+        }
+
         const link = links.find(l => {
-            const match = isLocal || (l.domain && l.domain.domain_name === cleanHost);
-            return match;
+            const dbDomainName = l.domain?.domain_name?.toLowerCase();
+            return dbDomainName === requestDomain;
         });
 
         if (!link) {
-            throw new errors.NotFoundError('Link not found');
+            throw new errors.NotFoundError(`Link not found on brand "${requestDomain}"`);
         }
 
         const now = new Date();
-        if (link.expire_at) {
-            const expireTime = new Date(link.expire_at);
-            console.log('Comparison:', now.getTime(), '>', expireTime.getTime(), 'Result:', now > expireTime);
-        }
-
-        if (link.schedule_at && now < new Date(link.schedule_at)) {
-            throw new errors.ForbiddenError('Link has not started yet');
-        }
-
         if (link.expire_at && now > new Date(link.expire_at)) {
             throw new errors.ForbiddenError('Link has expired');
+        }
+        if (link.schedule_at && now < new Date(link.schedule_at)) {
+            throw new errors.ForbiddenError('Link has not started yet');
         }
 
         if (link.geo_targeting && (link.geo_targeting as any)[country]) {
             return (link.geo_targeting as any)[country];
         }
+
         return link.original_url;
     },
     // Bulk Import
@@ -199,7 +209,7 @@ export default factories.createCoreService('api::link.link', ({ strapi }) => ({
         for await (const row of parser) {
             results.total++;
             const originalUrl = row.original_url || row.url;
-
+            const csvDomainName = row.domain || row.domain_name;
             if (!originalUrl) {
                 results.failed++;
                 results.details.push({ originalUrl: 'N/A', error: 'Missing URL' });
@@ -207,11 +217,23 @@ export default factories.createCoreService('api::link.link', ({ strapi }) => ({
             }
 
             try {
+                let targetDomainId = publicDomain?.id;
+                if (csvDomainName) {
+                    const foundDomain = await strapi.db.query('api::domain.domain').findOne({
+                        where: { domain_name: csvDomainName }
+                    });
+
+                    if (foundDomain) {
+                        targetDomainId = foundDomain.id;
+                    } else {
+                        throw new Error(`Domain "${csvDomainName}" không tồn tại hoặc bạn không có quyền.`);
+                    }
+                }
                 const newLink = await this.create({
                     data: {
                         original_url: originalUrl,
                         custom_slug: row.custom_slug || row.slug,
-                        domain: row.domain_id || publicDomain?.id,
+                        domain: targetDomainId,
                         verified_safe: true,
                         users_permissions_user: userId,
                     }
@@ -236,10 +258,8 @@ export default factories.createCoreService('api::link.link', ({ strapi }) => ({
 
         try {
             const qrBuffer = await QRCode.toBuffer(url, { width: 400, margin: 1 });
-
             await fs.promises.writeFile(tempPath, qrBuffer);
             const stats = await fs.promises.stat(tempPath);
-
             const result = await strapi.plugin('upload').service('upload').upload({
                 data: {
                     refId: linkId,
@@ -262,6 +282,7 @@ export default factories.createCoreService('api::link.link', ({ strapi }) => ({
             });
 
             const uploadedFile = Array.isArray(result) ? result[0] : result;
+
             return uploadedFile;
         } catch (error) {
             throw error;

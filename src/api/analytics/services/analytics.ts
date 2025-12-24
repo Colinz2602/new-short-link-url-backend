@@ -80,7 +80,8 @@ export default ({ strapi }) => ({
                 full_short_url: link.full_short_url,
                 original_url: link.original_url,
                 created_at: link.createdAt,
-                qr_image: link.qr_image
+                qr_image: link.qr_image,
+                ai_insights: link.ai_insights
             },
             analytics: {
                 total_clicks: stats.total,

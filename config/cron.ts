@@ -150,4 +150,94 @@ export default {
             rule: '0 0 * * *', // Chạy mỗi ngày lúc 00:00
         },
     },
+
+    // Cron 3: AI Weekly Insights (Phase 3)
+    // Chạy vào 00:00 sáng Thứ Hai hàng tuần
+    generateAIInsights: {
+        task: async ({ strapi }) => {
+            console.log('[AI-Cron] Bắt đầu phân tích Insights tuần...');
+            try {
+                // Lấy Link có traffic cao (> 50 clicks)
+                const highTrafficLinks = await strapi.db.query('api::link.link').findMany({
+                    where: {
+                        click_count: { $gt: 50 },
+                        state: 'active',
+                        users_permissions_user: { $notNull: true }
+                    },
+                    populate: ['users_permissions_user'],
+                    limit: 20,
+                });
+
+                for (const link of highTrafficLinks) {
+                    try {
+                        const insights = await strapi.service('api::ai.ai').analyzeLinkInsights(link.id, link.owner.id);
+                        console.log(`[AI-Cron] Generated insights for link ${link.short_code}`);
+                        await strapi.entityService.update('api::link.link', link.id, {
+                            data: { ai_insights: insights }
+                        })
+                    } catch (err) {
+                        console.error(`[AI-Cron] Lỗi phân tích link ${link.id}:`, err.message);
+                    }
+                }
+            } catch (err) {
+                console.error('[AI-Cron] Lỗi hệ thống:', err);
+            }
+        },
+        options: {
+            rule: '0 0 * * 1',
+        },
+    },
+
+    // Cron 4: Quét gói cước hết hạn (Subscription)
+    // Chạy mỗi ngày lúc 01:00 sáng
+
+    checkExpiredSubscriptions: {
+        task: async ({ strapi }) => {
+            try {
+                const now = new Date();
+                console.log(`[Subscription-Cron] Bắt đầu kiểm tra gói cước: ${now.toISOString()}`);
+
+                // Tìm các subscription không phải Free và đã quá hạn active_until
+                const expiredSubs = await strapi.db.query('api::subscription.subscription').findMany({
+                    where: {
+                        plan_type: {
+                            $ne: 'free',
+                        },
+                        active_until: {
+                            $notNull: true,
+                            $lt: now,
+                        },
+                    },
+                    select: ['id']
+                });
+
+                if (expiredSubs.length === 0) {
+                    console.log('[Subscription-Cron] Tất cả gói cước đều hợp lệ.');
+                    return;
+                }
+
+                console.log(`[Subscription-Cron] Tìm thấy ${expiredSubs.length} gói cước hết hạn. Tiến hành hạ cấp...`);
+
+                const updatePromises = expiredSubs.map(async (sub) => {
+                    // Update về Free và xóa ngày hết hạn
+                    return strapi.entityService.update('api::subscription.subscription', sub.id, {
+                        data: {
+                            plan_type: 'free',
+                            active_until: null,
+                            stripe_subscription_id: null
+                        }
+                    });
+                });
+
+                await Promise.all(updatePromises);
+                console.log(`[Subscription-Cron] Đã hạ cấp thành công ${expiredSubs.length} tài khoản về gói Free.`);
+
+            } catch (err) {
+                console.error('[Subscription-Cron] Lỗi hệ thống:', err);
+            }
+        },
+        options: {
+            rule: '0 1 * * *',
+        }
+    }
 };

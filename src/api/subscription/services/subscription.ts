@@ -9,7 +9,7 @@ const stripe = new Stripe(STRIPE_KEY || '', {
 
 export default factories.createCoreService('api::subscription.subscription', ({ strapi }) => ({
     // Tạo Stripe checkout session cho POST /api/payment/checkout
-    async createStripeCheckoutSession(userId: number, userEmail: string, priceId: string, planType: string) {
+    async createStripeCheckoutSession(userId: number, userEmail: string, priceId: string, planType: string, toolId?: number) {
 
         if (!process.env.STRIPE_SECRET_KEY) {
             throw new Error('Stripe Key missing on Server');
@@ -18,15 +18,21 @@ export default factories.createCoreService('api::subscription.subscription', ({ 
         const frontendUrl = process.env.FRONTEND_URL || 'http://localhost:3000';
 
         try {
-            const session = await stripe.checkout.sessions.create({
+            const sessionConfig: Stripe.Checkout.SessionCreateParams = {
                 payment_method_types: ['card'],
-                mode: planType === 'single' ? 'payment' : 'subscription',
+                mode: planType === 'tool' ? 'payment' : 'subscription',
                 customer_email: userEmail,
                 line_items: [{ price: priceId, quantity: 1 }],
                 success_url: `${frontendUrl}/?payment=success`,
                 cancel_url: `${frontendUrl}/pricing?payment=cancelled`,
-                metadata: { userId: userId.toString(), planType },
-            });
+                metadata: { userId: userId.toString(), planType, toolId: toolId ? toolId.toString() : '' },
+            };
+
+            if (planType === 'tool') {
+                sessionConfig.customer_creation = 'always';
+            }
+
+            const session = await stripe.checkout.sessions.create(sessionConfig);
             return session.url;
         } catch (e: any) {
             throw e;
@@ -47,7 +53,10 @@ export default factories.createCoreService('api::subscription.subscription', ({ 
     },
 
     async updateUserSubscription(session: any) {
-        const { userId, planType } = session.metadata;
+        const { userId, planType, toolId } = session.metadata;
+        if (!userId) {
+            return;
+        }
         const stripeCustomerId = session.customer;
         const stripeSubscriptionId = session.subscription;
 
@@ -61,22 +70,35 @@ export default factories.createCoreService('api::subscription.subscription', ({ 
                 expirationDate.setMonth(now.getMonth() + 3);
                 break;
             case 'bundle':
-            case 'single':
+            case 'tool':
             default:
                 expirationDate.setDate(now.getDate() + 30);
                 break;
         }
+
         const existingSub = await strapi.db.query('api::subscription.subscription').findOne({
-            where: { users_permissions_user: userId }
+            where: { users_permissions_user: userId },
+            populate: ['tools']
         });
 
-        const data = {
+        const data: any = {
+            users_permissions_user: userId,
             stripe_customer_id: stripeCustomerId,
-            stripe_subscription_id: stripeSubscriptionId,
-            plan_type: planType,
-            active_until: expirationDate,
-            users_permissions_user: userId
         };
+
+        if (stripeSubscriptionId) {
+            data.stripe_subscription_id = stripeSubscriptionId;
+            data.plan_type = planType;
+            data.active_until = expirationDate;
+        } else if (!existingSub) {
+            data.plan_type = planType;
+            data.active_until = expirationDate;
+        }
+
+        if (planType === 'tool' && toolId) {
+            const currentToolIds = existingSub?.tools?.map((t: any) => t.id) || [];
+            data.tools = [...new Set([...currentToolIds, parseInt(toolId)])];
+        }
 
         if (existingSub) {
             await strapi.entityService.update('api::subscription.subscription', existingSub.id, { data });

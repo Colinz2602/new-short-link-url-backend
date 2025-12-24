@@ -17,8 +17,8 @@
     },
     "stripe_subscription_id": {
       "type": "string",
-      "required": true,
-      "unique": true
+      "required": false,
+      "unique": false
     },
     "plan_type": {
       "type": "enumeration",
@@ -39,6 +39,12 @@
       "relation": "oneToOne",
       "target": "plugin::users-permissions.user",
       "inversedBy": "subscription"
+    },
+    "tools": {
+      "type": "relation",
+      "relation": "manyToMany",
+      "target": "api::tool.tool",
+      "mappedBy": "subscriptions"
     }
   }
 }

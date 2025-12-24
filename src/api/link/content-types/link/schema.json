@@ -17,7 +17,7 @@
     },
     "short_code": {
       "type": "string",
-      "unique": true
+      "unique": false
     },
     "full_short_url": {
       "type": "string"
@@ -75,6 +75,9 @@
     },
     "creator_ip": {
       "type": "string"
+    },
+    "ai_insights": {
+      "type": "text"
     }
   }
 }

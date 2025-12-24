@@ -1,0 +1,49 @@
+{
+  "kind": "collectionType",
+  "collectionName": "tools",
+  "info": {
+    "singularName": "tool",
+    "pluralName": "tools",
+    "displayName": "tool"
+  },
+  "options": {
+    "draftAndPublish": false
+  },
+  "pluginOptions": {},
+  "attributes": {
+    "name": {
+      "type": "string",
+      "required": true
+    },
+    "slug": {
+      "type": "uid",
+      "targetField": "name",
+      "required": true
+    },
+    "description": {
+      "type": "text"
+    },
+    "price": {
+      "type": "decimal",
+      "required": true,
+      "default": 5
+    },
+    "api_endpoint": {
+      "type": "string",
+      "private": true
+    },
+    "active": {
+      "type": "boolean",
+      "default": true
+    },
+    "subscriptions": {
+      "type": "relation",
+      "relation": "manyToMany",
+      "target": "api::subscription.subscription",
+      "inversedBy": "tools"
+    },
+    "stripe_price_id": {
+      "type": "string"
+    }
+  }
+}

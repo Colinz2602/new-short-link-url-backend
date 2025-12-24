@@ -3,7 +3,7 @@ import { factories } from '@strapi/strapi';
 export default factories.createCoreController('api::subscription.subscription', ({ strapi }) => ({
     // POST /api/payment/checkout
     async createCheckoutSession(ctx) {
-        const { priceId, planType } = (ctx.request as any).body;
+        const { priceId, planType, toolId } = (ctx.request as any).body;
         const user = ctx.state.user;
 
         if (!user) return ctx.unauthorized('User not authenticated');
@@ -11,7 +11,8 @@ export default factories.createCoreController('api::subscription.subscription', 
         try {
             const url = await strapi
                 .service('api::subscription.subscription')
-                .createStripeCheckoutSession(user.id, user.email, priceId, planType);
+                // Truyền toolId vào service
+                .createStripeCheckoutSession(user.id, user.email, priceId, planType, toolId);
             return { data: { url } };
 
         } catch (error: any) {

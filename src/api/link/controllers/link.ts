@@ -34,10 +34,9 @@ export default factories.createCoreController('api::link.link', ({ strapi }) => 
                 ctx.request.body.data.domain = Number(ctx.request.body.data.domain);
             }
 
+            const now = new Date();
+            const thirtyDaysAgo = new Date(now.getTime() - 30 * 24 * 60 * 60 * 1000);
             if (!user) {
-                const now = new Date();
-                const thirtyDaysAgo = new Date(now.getTime() - 30 * 24 * 60 * 60 * 1000);
-
                 const count = await strapi.db.query('api::link.link').count({
                     where: {
                         creator_ip: ip,
@@ -53,6 +52,25 @@ export default factories.createCoreController('api::link.link', ({ strapi }) => 
                 ctx.request.body.data.users_permissions_user = null;
 
             } else {
+                const sub = await strapi.db.query('api::subscription.subscription').findOne({
+                    where: { users_permissions_user: user.id }
+                });
+                const isFreeUser = !sub ||
+                    sub.plan_type === 'free' ||
+                    (sub.active_until && new Date(sub.active_until) < now);
+                if (isFreeUser) {
+                    const count = await strapi.db.query('api::link.link').count({
+                        where: {
+                            users_permissions_user: user.id,
+                            createdAt: { $gte: thirtyDaysAgo.toISOString() }
+                        }
+                    });
+
+                    if (count >= 200) {
+                        return ctx.badRequest('Tài khoản Free giới hạn tạo 200 links/tháng. Vui lòng nâng cấp gói để tạo không giới hạn.');
+                    }
+                }
+
                 ctx.request.body.data.users_permissions_user = user.id;
                 ctx.request.body.data.creator_ip = ip;
             }
@@ -71,7 +89,7 @@ export default factories.createCoreController('api::link.link', ({ strapi }) => 
     // GET /links/:slug
     async redirect(ctx) {
         const { slug } = ctx.params;
-        const hostname = ctx.request.header.host;
+        const hostname = ctx.query.host || ctx.request.header.host;
         const country = ctx.state.userCountry || 'Unknown';
         try {
             const targetUrl = await strapi.service('api::link.link').getRedirectTarget(slug, hostname, country);
@@ -165,7 +183,6 @@ export default factories.createCoreController('api::link.link', ({ strapi }) => 
                 return { data: { url: finalLink.qr_image.url, isNew: false } };
             }
             const qrFile = await strapi.service('api::link.link').generateQrCode(finalLink.id, finalLink.full_short_url);
-
             return { data: { url: qrFile.url, isNew: true } };
 
         } catch (err: any) {
