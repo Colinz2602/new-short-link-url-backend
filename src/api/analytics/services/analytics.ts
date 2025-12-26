@@ -41,13 +41,14 @@ export default ({ strapi }) => ({
 
     // Hàm getAnalytics cho GET /api/analytics/:linkId
     async getAnalytics(linkId: number | string, userId: number | string) {
+        const whereCondition: any = { id: linkId };
         const link = await strapi.db.query('api::link.link').findOne({
-            where: { id: linkId, users_permissions_user: userId },
+            where: whereCondition,
             populate: ['domain', 'qr_image']
         });
 
         if (!link) {
-            throw new errors.NotFoundError('Link not found or unauthorized.');
+            throw new errors.NotFoundError('Link not found.');
         }
         const clicks = await strapi.db.query('api::click.click').findMany({
             where: { link: linkId },

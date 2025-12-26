@@ -29,11 +29,11 @@ export default ({ strapi }) => ({
   async getAnalytics(ctx) {
     try {
       const { linkId } = ctx.params;
-      const userId = ctx.state.user?.id;
+      // const userId = ctx.state.user?.id;
 
-      if (!userId) return ctx.unauthorized();
+      // if (!userId) return ctx.unauthorized();
 
-      const stats = await strapi.service('api::analytics.analytics').getAnalytics(linkId, userId);
+      const stats = await strapi.service('api::analytics.analytics').getAnalytics(linkId, null);
 
       return { data: stats };
 

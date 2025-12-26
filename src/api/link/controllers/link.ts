@@ -48,6 +48,7 @@ export default factories.createCoreController('api::link.link', ({ strapi }) => 
                 if (count >= 50) {
                     return ctx.badRequest('Bạn đã đạt giới hạn 50 links miễn phí');
                 }
+
                 ctx.request.body.data.creator_ip = ip;
                 ctx.request.body.data.users_permissions_user = null;
 

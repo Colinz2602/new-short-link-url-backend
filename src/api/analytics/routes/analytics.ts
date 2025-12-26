@@ -15,7 +15,8 @@ export default {
       path: '/analytics/:linkId',
       handler: 'analytics.getAnalytics',
       config: {
-        policies: ['global::is-authenticated']
+        auth: false,
+        policies: []
       },
     }
   ],
