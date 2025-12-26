@@ -534,6 +534,52 @@ export interface ApiDomainDomain extends Struct.CollectionTypeSchema {
   };
 }
 
+export interface ApiLinkConfigurationLinkConfiguration
+  extends Struct.SingleTypeSchema {
+  collectionName: 'link_configurations';
+  info: {
+    displayName: 'link_configurations';
+    pluralName: 'link-configurations';
+    singularName: 'link-configuration';
+  };
+  options: {
+    draftAndPublish: false;
+  };
+  attributes: {
+    createdAt: Schema.Attribute.DateTime;
+    createdBy: Schema.Attribute.Relation<'oneToOne', 'admin::user'> &
+      Schema.Attribute.Private;
+    free_limit: Schema.Attribute.Integer &
+      Schema.Attribute.Required &
+      Schema.Attribute.SetMinMax<
+        {
+          min: 0;
+        },
+        number
+      > &
+      Schema.Attribute.DefaultTo<200>;
+    guest_limit: Schema.Attribute.Integer &
+      Schema.Attribute.Required &
+      Schema.Attribute.SetMinMax<
+        {
+          min: 0;
+        },
+        number
+      > &
+      Schema.Attribute.DefaultTo<50>;
+    locale: Schema.Attribute.String & Schema.Attribute.Private;
+    localizations: Schema.Attribute.Relation<
+      'oneToMany',
+      'api::link-configuration.link-configuration'
+    > &
+      Schema.Attribute.Private;
+    publishedAt: Schema.Attribute.DateTime;
+    updatedAt: Schema.Attribute.DateTime;
+    updatedBy: Schema.Attribute.Relation<'oneToOne', 'admin::user'> &
+      Schema.Attribute.Private;
+  };
+}
+
 export interface ApiLinkLink extends Struct.CollectionTypeSchema {
   collectionName: 'links';
   info: {
@@ -1172,6 +1218,7 @@ declare module '@strapi/strapi' {
       'admin::user': AdminUser;
       'api::click.click': ApiClickClick;
       'api::domain.domain': ApiDomainDomain;
+      'api::link-configuration.link-configuration': ApiLinkConfigurationLinkConfiguration;
       'api::link.link': ApiLinkLink;
       'api::subscription.subscription': ApiSubscriptionSubscription;
       'api::tool.tool': ApiToolTool;

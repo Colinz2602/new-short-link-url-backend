@@ -34,8 +34,13 @@ export default factories.createCoreController('api::link.link', ({ strapi }) => 
                 ctx.request.body.data.domain = Number(ctx.request.body.data.domain);
             }
 
+            const config = await strapi.documents('api::link-configuration.link-configuration').findFirst();
+            const GUEST_LIMIT = config?.guest_limit;
+            const FREE_LIMIT = config?.free_limit;
+
             const now = new Date();
             const thirtyDaysAgo = new Date(now.getTime() - 30 * 24 * 60 * 60 * 1000);
+
             if (!user) {
                 const count = await strapi.db.query('api::link.link').count({
                     where: {
@@ -45,8 +50,8 @@ export default factories.createCoreController('api::link.link', ({ strapi }) => 
                     }
                 });
 
-                if (count >= 50) {
-                    return ctx.badRequest('Bạn đã đạt giới hạn 50 links miễn phí');
+                if (count >= GUEST_LIMIT) {
+                    return ctx.badRequest(`Bạn đã đạt giới hạn ${GUEST_LIMIT} links miễn phí`);
                 }
 
                 ctx.request.body.data.creator_ip = ip;
@@ -59,6 +64,7 @@ export default factories.createCoreController('api::link.link', ({ strapi }) => 
                 const isFreeUser = !sub ||
                     sub.plan_type === 'free' ||
                     (sub.active_until && new Date(sub.active_until) < now);
+
                 if (isFreeUser) {
                     const count = await strapi.db.query('api::link.link').count({
                         where: {
@@ -67,8 +73,8 @@ export default factories.createCoreController('api::link.link', ({ strapi }) => 
                         }
                     });
 
-                    if (count >= 200) {
-                        return ctx.badRequest('Tài khoản Free giới hạn tạo 200 links/tháng. Vui lòng nâng cấp gói để tạo không giới hạn.');
+                    if (count >= FREE_LIMIT) {
+                        return ctx.badRequest(`Tài khoản Free giới hạn tạo ${FREE_LIMIT} links/tháng. Vui lòng nâng cấp gói để tạo không giới hạn.`);
                     }
                 }
 

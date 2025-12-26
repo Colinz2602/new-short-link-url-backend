@@ -1,0 +1,27 @@
+{
+  "kind": "singleType",
+  "collectionName": "link_configurations",
+  "info": {
+    "singularName": "link-configuration",
+    "pluralName": "link-configurations",
+    "displayName": "link_configurations"
+  },
+  "options": {
+    "draftAndPublish": false
+  },
+  "pluginOptions": {},
+  "attributes": {
+    "guest_limit": {
+      "type": "integer",
+      "required": true,
+      "default": 50,
+      "min": 0
+    },
+    "free_limit": {
+      "type": "integer",
+      "required": true,
+      "default": 200,
+      "min": 0
+    }
+  }
+}
